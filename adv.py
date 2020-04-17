@@ -17,7 +17,7 @@ world = World()
 map_file = "maps/main_maze.txt"
 
 # Loads the map into a dictionary
-room_graph=literal_eval(open(map_file, "r").read())
+room_graph = literal_eval(open(map_file, "r").read())
 world.load_graph(room_graph)
 
 # Print an ASCII map
@@ -30,10 +30,72 @@ player = Player(world.starting_room)
 traversal_path = []
 
 
+# def get_adjacent_room_id(direction):
+#     opposite = 'letter'
+#     if direction == 'n':
+#         opposite = 's'
+#     elif direction == 's':
+#         opposite = 'n'
+#     elif direction == 'w':
+#         opposite = 'e'
+#     elif direction == 'e':
+#         opposite = 'w'
+#     player.travel(direction)
 
+#     direction_room_id = player.current_room.id
+#     player.travel(opposite)
+#     return direction_room_id
+# ! this function can be replaced with room.get_room_in_direction('n').id
+
+def bfs():
+
+    player.current_room = world.starting_room
+    # queue = []
+    # queue.append([player.current_room])
+    visited = {}
+    my_traversal_path = []
+    while len(visited) < 500:
+        # room = queue.pop(0)
+        room = player.current_room
+        exits = room.get_exits()  # *{0: [n,s,e,w]}
+
+        if room.id not in visited:
+            visited[room.id] = {}
+            for cardinal_direction in exits:
+                visited[room.id][cardinal_direction] = "*"
+                # *visited = {0: {"n": "*", "s": "*", "e": "*", "w": "*"}}
+        for cardinal_direction in exits:
+            if "*" not in visited[room.id].values():
+                back_track_to_smallest_id = ('cardinal_direction', 501)
+                for i in visited[room.id].iteritems():
+                    if i[1] < back_track_to_smallest_id[1]:
+                        back_track_to_smallest_id = i
+                my_traversal_path.append(back_track_to_smallest_id[0])
+                player.travel(back_track_to_smallest_id[0])
+            elif visited[room.id][cardinal_direction] == "*":
+                next_rm_id = room.get_room_in_direction(cardinal_direction)
+
+                # replace  "n": "*" with "n": "8"
+                visited[room.id][cardinal_direction] == next_rm_id
+                my_traversal_path.append(cardinal_direction)
+                player.travel(cardinal_direction)
+                break
+
+    print(len(my_traversal_path), my_traversal_path)
+
+
+bfs()
 # TRAVERSAL TEST
 visited_rooms = set()
 player.current_room = world.starting_room
+print("after Here:\n", player.current_room,
+      "RIGHT HERE!!!", "type:", type(player.current_room))
+print(player.current_room.id)
+print(player.current_room.get_exits())
+print(player.current_room.get_room_in_direction('s').id)
+print(player.travel('s'))
+print(player.current_room.get_room_in_direction('n').id)
+print(player.current_room.id, "p.cur.id")
 visited_rooms.add(player.current_room)
 
 for move in traversal_path:
@@ -41,11 +103,11 @@ for move in traversal_path:
     visited_rooms.add(player.current_room)
 
 if len(visited_rooms) == len(room_graph):
-    print(f"TESTS PASSED: {len(traversal_path)} moves, {len(visited_rooms)} rooms visited")
+    print(
+        f"TESTS PASSED: {len(traversal_path)} moves, {len(visited_rooms)} rooms visited")
 else:
     print("TESTS FAILED: INCOMPLETE TRAVERSAL")
     print(f"{len(room_graph) - len(visited_rooms)} unvisited rooms")
-
 
 
 #######
