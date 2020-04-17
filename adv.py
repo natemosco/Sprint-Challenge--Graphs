@@ -30,22 +30,19 @@ player = Player(world.starting_room)
 traversal_path = []
 
 
-# def get_adjacent_room_id(direction):
-#     opposite = 'letter'
-#     if direction == 'n':
-#         opposite = 's'
-#     elif direction == 's':
-#         opposite = 'n'
-#     elif direction == 'w':
-#         opposite = 'e'
-#     elif direction == 'e':
-#         opposite = 'w'
-#     player.travel(direction)
-
-#     direction_room_id = player.current_room.id
-#     player.travel(opposite)
-#     return direction_room_id
+def get_opposite(direction):
+    opposite = 'letter'
+    if direction == 'n':
+        opposite = 's'
+    elif direction == 's':
+        opposite = 'n'
+    elif direction == 'w':
+        opposite = 'e'
+    elif direction == 'e':
+        opposite = 'w'
+    return opposite
 # ! this function can be replaced with room.get_room_in_direction('n').id
+
 
 def bfs():
 
@@ -55,6 +52,7 @@ def bfs():
     visited = {}
     my_traversal_path = []
     while len(visited) < 500:
+        print(len(visited), "visited")
         # room = queue.pop(0)
         room = player.current_room
         exits = room.get_exits()  # *{0: [n,s,e,w]}
@@ -64,27 +62,37 @@ def bfs():
             for cardinal_direction in exits:
                 visited[room.id][cardinal_direction] = "*"
                 # *visited = {0: {"n": "*", "s": "*", "e": "*", "w": "*"}}
+        if len(my_traversal_path) > 0:
+            previous = get_opposite(my_traversal_path[-1])
+            visited[room.id][previous] = room.get_room_in_direction(
+                previous).id
+
         for cardinal_direction in exits:
+            # have all exits been visited before?
             if "*" not in visited[room.id].values():
                 back_track_to_smallest_id = ('cardinal_direction', 501)
-                for i in visited[room.id].iteritems():
-                    if i[1] < back_track_to_smallest_id[1]:
-                        back_track_to_smallest_id = i
+                for key_value in visited[room.id].items():
+                    if key_value[1] < back_track_to_smallest_id[1]:
+                        back_track_to_smallest_id = key_value
                 my_traversal_path.append(back_track_to_smallest_id[0])
                 player.travel(back_track_to_smallest_id[0])
+                break
             elif visited[room.id][cardinal_direction] == "*":
-                next_rm_id = room.get_room_in_direction(cardinal_direction)
+                next_rm_id = room.get_room_in_direction(cardinal_direction).id
 
                 # replace  "n": "*" with "n": "8"
-                visited[room.id][cardinal_direction] == next_rm_id
+                visited[room.id][cardinal_direction] = next_rm_id
                 my_traversal_path.append(cardinal_direction)
                 player.travel(cardinal_direction)
                 break
 
-    print(len(my_traversal_path), my_traversal_path)
+    # print(len(my_traversal_path), "my_traversal_path")
+    global traversal_path
+    traversal_path = my_traversal_path
 
 
 bfs()
+
 # TRAVERSAL TEST
 visited_rooms = set()
 player.current_room = world.starting_room
