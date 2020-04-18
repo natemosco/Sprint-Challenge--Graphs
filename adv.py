@@ -44,15 +44,23 @@ def get_opposite(direction):
 # ! this function can be replaced with room.get_room_in_direction('n').id
 
 
-def bfs():
+def dfs():
 
     player.current_room = world.starting_room
     # queue = []
     # queue.append([player.current_room])
     visited = {}
     my_traversal_path = []
+    prev_room = None  # ?(get_opposite(largest_next_room[0]), prev_rm_id)
     while len(visited) < 500:
-        print(len(visited), "visited")
+
+        # print(len(visited), "visited")
+        if len(my_traversal_path) == 539:
+            with open("./my_path.txt", "w") as path:
+                for location in my_traversal_path:
+                    path.write(f"{location}\n")
+            path.close()
+
         # room = queue.pop(0)
         room = player.current_room
         exits = room.get_exits()  # *{0: [n,s,e,w]}
@@ -61,37 +69,81 @@ def bfs():
             visited[room.id] = {}
             for cardinal_direction in exits:
                 visited[room.id][cardinal_direction] = "*"
-                # *visited = {0: {"n": "*", "s": "*", "e": "*", "w": "*"}}
-        if len(my_traversal_path) > 0:
-            previous = get_opposite(my_traversal_path[-1])
-            visited[room.id][previous] = room.get_room_in_direction(
-                previous).id
+                # * FIRST PASS visited = {0: {"n": "*", "s": "*", "e": "*", "w": "*"}}
+                # * SECOND PASS visited = {
+                # *                          0: {"n": "*", "s": 8, "e": "*", "w": "*"}
+                # *                          8: {"n": "*", "w": "*"}}
+                # ? "*" == unvisited:
+            if prev_room is not None:
+                visited[room.id][prev_room[0]] = prev_room[1]
+                # * SECOND PASS visited = {
+                # *                          0: {"n": "*", "s": 8, "e": "*", "w": "*"}
+                # *                          8: {"n": "0", "w": "*"}}
 
-        for cardinal_direction in exits:
-            # have all exits been visited before?
-            if "*" not in visited[room.id].values():
-                back_track_to_smallest_id = ('cardinal_direction', 501)
-                for key_value in visited[room.id].items():
-                    if key_value[1] < back_track_to_smallest_id[1]:
-                        back_track_to_smallest_id = key_value
-                my_traversal_path.append(back_track_to_smallest_id[0])
-                player.travel(back_track_to_smallest_id[0])
-                break
-            elif visited[room.id][cardinal_direction] == "*":
-                next_rm_id = room.get_room_in_direction(cardinal_direction).id
+        # have all exits been visited before?
+        if room.id == 0 and "*" not in visited[0].values():
+            """
+            *if you're back at 0 (starting point) and havent hit all 500 rooms. first
+            *check visited path to identify a gap
+            ?then find path to the gap
+            *go there and continue with traversal
+            """
+            unvisited = ('direction', 501)
+            for room_id in visited:
+                if "*" in visited[room_id].values():
+                    unvisited = ('direction', room_id)
 
-                # replace  "n": "*" with "n": "8"
-                visited[room.id][cardinal_direction] = next_rm_id
-                my_traversal_path.append(cardinal_direction)
-                player.travel(cardinal_direction)
-                break
+            path_to_unvisited = []
+            back_to_zero = False
+            while not back_to_zero:
+                for pair in visited[unvisited[1]].items():
+                    if pair[1] == "*":
+                        continue
+                    if pair[1] < unvisited[1]:
+                        unvisited = pair
+                    if pair[1] == 0:
+                        back_to_zero = True
+                path_to_unvisited.insert(0, get_opposite(unvisited[0]))
 
-    # print(len(my_traversal_path), "my_traversal_path")
+            for direction in path_to_unvisited:
+                player.travel(direction)
+                my_traversal_path.append(
+                    (direction, room.get_room_in_direction(direction)))
+        elif "*" not in visited[room.id].values():
+            back_track_to_smallest_id = ('cardinal_direction', 501)
+            for key_value in visited[room.id].items():
+                if key_value[1] < back_track_to_smallest_id[1]:
+                    back_track_to_smallest_id = key_value
+            my_traversal_path.append(
+                (back_track_to_smallest_id[0], back_track_to_smallest_id[1]))
+            player.travel(back_track_to_smallest_id[0])
+
+        else:
+            largest_next_room = ('some_direction', -10)
+
+            # [('n':'*'), ('s':*), ('e':'*'), ('w':*)]
+            for key_value in visited[room.id].items():
+                if key_value[1] == "*":
+                    unvisited_room_id = room.get_room_in_direction(
+                        key_value[0]).id  # * evals to [('n':'4'), ('s':8), ('e':'1'), ('w':3)]
+                    if unvisited_room_id > largest_next_room[1]:
+                        largest_next_room = (key_value[0], unvisited_room_id)
+            # replace  "n": "*" with "n": "8"
+            visited[room.id][largest_next_room[0]] = largest_next_room[1]
+            # store values of previous room (dir_i_came_from, prev_rm_id)
+
+            prev_rm_id = int(room.id)
+            prev_room = (get_opposite(largest_next_room[0]), prev_rm_id)
+            # * go to next room and add to traversal_path
+            my_traversal_path.append(largest_next_room)
+            player.travel(largest_next_room[0])
+
     global traversal_path
-    traversal_path = my_traversal_path
+    for pair in my_traversal_path:
+        traversal_path.append(pair[0])
 
 
-bfs()
+dfs()
 
 # TRAVERSAL TEST
 visited_rooms = set()
@@ -102,7 +154,8 @@ print(player.current_room.id)
 print(player.current_room.get_exits())
 print(player.current_room.get_room_in_direction('s').id)
 print(player.travel('s'))
-print(player.current_room.get_room_in_direction('n').id)
+print(player.current_room.get_room_in_direction('n').id, "type:",
+      type(player.current_room.get_room_in_direction('n').id))
 print(player.current_room.id, "p.cur.id")
 visited_rooms.add(player.current_room)
 
